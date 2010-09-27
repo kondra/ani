@@ -14,8 +14,18 @@ typedef struct
     gchar *size;
     gchar *date;
     gchar *comment;
+
+    gchar *release_group;
+    gchar *quality;
+    gchar *codec;
+
+    guint episode;
+    guint season;
+
+    gchar *format;
 } Anime;
 
-GPtrArray *parse (const gchar *text, goffset length);
+GPtrArray *result_parser (const gchar *text, goffset length);
+gint name_parser (Anime *ani);
 
 #endif
