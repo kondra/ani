@@ -2,22 +2,12 @@
 
 SoupMessage *request (gchar *terms, gint type, gint min_size, gint max_size)
 {
-    const int debug_level = 2;
-
     SoupSession *session;
     SoupMessage *msg;
 
     guint status;
 
     session = soup_session_async_new ();
-
-    if (debug_level) {
-        SoupLogger *logger;
-
-        logger = soup_logger_new (debug_level, -1);
-        soup_session_add_feature (session, SOUP_SESSION_FEATURE (logger));
-        g_object_unref (logger);
-    }
 
     if (max_size > 0 && min_size >= 0) {
         msg = soup_form_request_new ("GET", "http://tokyotosho.info/search.php",
