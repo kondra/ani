@@ -1,5 +1,7 @@
 #include "ani-parser.h"
 
+#undef DEBUG
+
 GPtrArray *parse (const gchar *text, goffset length)
 {
     GPtrArray *parr = g_ptr_array_new ();
@@ -43,9 +45,11 @@ GPtrArray *parse (const gchar *text, goffset length)
             ani->id = g_ascii_strtoull (buf, NULL, 10);
             g_free (buf);
 
-            //            g_debug ("%s", ani->uri);
-            //            g_debug ("%s", ani->name);
-            //            g_debug ("%d", ani->id);
+#ifdef DEBUG
+            g_debug ("uri: %s", ani->uri);
+            g_debug ("name: %s", ani->name);
+            g_debug ("id: %d", ani->id);
+#endif
 
             g_match_info_free (match_info);
             res++;
@@ -62,10 +66,14 @@ GPtrArray *parse (const gchar *text, goffset length)
             ani->date = g_match_info_fetch (match_info, 3);
             ani->comment = g_match_info_fetch (match_info, 4);
 
-            //            g_debug ("%s", ani->submitter);
-            //            g_debug ("%s", ani->size);
-            //            g_debug ("%s", ani->date);
-            //            g_debug ("%s\n", ani->comment);
+#ifdef DEBUG
+            g_debug ("submitter: %s", ani->submitter);
+            g_debug ("size: %s", ani->size);
+            g_debug ("date: %s", ani->date);
+            g_debug ("comment: %s\n", ani->comment);
+#endif
+
+            g_ptr_array_add (parr, (gpointer) ani);
 
             g_match_info_free (match_info);
             res++;
@@ -73,8 +81,6 @@ GPtrArray *parse (const gchar *text, goffset length)
             g_match_info_free (match_info);
             res++;
         }
-
-        g_ptr_array_add (parr, (gpointer) ani);
     }
 
     g_regex_unref (regex);
