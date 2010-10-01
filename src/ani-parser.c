@@ -1,7 +1,5 @@
 #include "ani-parser.h"
 
-#undef DEBUG
-
 GPtrArray *result_parser (const gchar *text, goffset length)
 {
     GPtrArray *parr = g_ptr_array_new ();
@@ -45,12 +43,6 @@ GPtrArray *result_parser (const gchar *text, goffset length)
             ani->id = g_ascii_strtoull (buf, NULL, 10);
             g_free (buf);
 
-#ifdef DEBUG
-            g_debug ("uri: %s", ani->uri);
-            g_debug ("name: %s", ani->name);
-            g_debug ("id: %d", ani->id);
-#endif
-
             g_match_info_free (match_info);
             res++;
         } else
@@ -65,13 +57,6 @@ GPtrArray *result_parser (const gchar *text, goffset length)
             ani->size = g_match_info_fetch (match_info, 2);
             ani->date = g_match_info_fetch (match_info, 3);
             ani->comment = g_match_info_fetch (match_info, 4);
-
-#ifdef DEBUG
-            g_debug ("submitter: %s", ani->submitter);
-            g_debug ("size: %s", ani->size);
-            g_debug ("date: %s", ani->date);
-            g_debug ("comment: %s\n", ani->comment);
-#endif
 
             g_ptr_array_add (parr, (gpointer) ani);
 
