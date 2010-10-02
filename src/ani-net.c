@@ -1,5 +1,7 @@
 #include "ani-net.h"
 
+const gchar *category_names[] = {"All", "Anime", "Music", "Manga", "Hentai", "Other", "", "Raws", "Drama", "Music Video"};
+
 SoupMessage *request (const gchar *terms, guint type, gint min_size, gint max_size)
 {
     SoupSession *session;
