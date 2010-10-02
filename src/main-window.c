@@ -51,6 +51,8 @@ enum
     COLUMNS
 };
 
+extern gchar *category_names[];
+
 static const gchar *column_names[] = {"Size", "Release Group", "Episode", "Quality", "Codec", "Filename"};
 
 static void search_init (CSearch *csh);
