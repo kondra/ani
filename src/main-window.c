@@ -1,5 +1,7 @@
 #include <gtk/gtk.h>
 
+#include <glib/gprintf.h>
+
 #include "ani-parser.h"
 #include "ani-net.h"
 
@@ -45,14 +47,19 @@ enum
     EPISODE,
     QUALITY,
     CODEC,
+    FILENAME,
     COLUMNS
 };
 
-static const gchar *column_names[] = {"Size", "Release Group", "Episode", "Quality", "Codec"};
+static const gchar *column_names[] = {"Size", "Release Group", "Episode", "Quality", "Codec", "Filename"};
+
+static void search_init (CSearch *csh);
+static void search_update (CSearch *csh);
+static void search_reset (CSearch *csh);
 
 static void destroy (GtkWidget *window, gpointer data);
-static void search_init (CSearch *csh);
-//static void search_update (CSearch *sch);
+static void search_wrapper (GtkWidget *button, CWindow *win);
+static void reset_wrapper (GtkWidget *button, CWindow *win);
 
 void create_window(void)
 {
@@ -71,7 +78,7 @@ void create_window(void)
 
     csh->search_view = gtk_tree_view_new ();
     search_init (csh);
-    csh->store = gtk_list_store_new (COLUMNS, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING);
+    csh->store = gtk_list_store_new (COLUMNS, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING);
 
     gtk_tree_view_set_model (GTK_TREE_VIEW (csh->search_view), GTK_TREE_MODEL (csh->store));
     gtk_tree_view_set_enable_search (GTK_TREE_VIEW (csh->search_view), FALSE);
@@ -87,24 +94,25 @@ void create_window(void)
     win->reset_button = gtk_button_new_from_stock (GTK_STOCK_CLEAR);
     win->search_button = gtk_button_new_from_stock (GTK_STOCK_FIND);
 
-//    g_signal_connect (G_OBJECT (win->search_button), "clicked", G_CALLBACK (search_wrapper), (gpointer) csh);
-//    g_signal_connect (G_OBJECT (win->reset_button), "clicked", G_CALLBACK (search_reset), (gpointer) csh);
+    g_signal_connect (G_OBJECT (win->search_button), "clicked", G_CALLBACK (search_wrapper), (gpointer) win);
+    g_signal_connect (G_OBJECT (win->reset_button), "clicked", G_CALLBACK (reset_wrapper), (gpointer) win);
 
     win->spin_max = gtk_spin_button_new_with_range (0, G_MAXUINT32, 1);
     win->spin_min = gtk_spin_button_new_with_range (0, G_MAXUINT32, 1);
 
     win->category_box = gtk_combo_box_new_text ();
     //Should be fixed!!
-    gtk_combo_box_append_text (GTK_COMBO_BOX (win->category_box), "Anime");
-    gtk_combo_box_append_text (GTK_COMBO_BOX (win->category_box), "Raws");
+    gtk_combo_box_append_text (GTK_COMBO_BOX (win->category_box), category_names[ALL]);
+    gtk_combo_box_append_text (GTK_COMBO_BOX (win->category_box), category_names[ANIME]);
+    gtk_combo_box_append_text (GTK_COMBO_BOX (win->category_box), category_names[RAWS]);
 
     win->hbox1 = gtk_hbox_new (FALSE, 5);
+    gtk_box_pack_start (GTK_BOX (win->hbox1), win->reset_button, FALSE, FALSE, 5);
     gtk_box_pack_start (GTK_BOX (win->hbox1), win->search_label, FALSE, FALSE, 5);
     gtk_box_pack_start (GTK_BOX (win->hbox1), win->search_entry, FALSE, FALSE, 5);
     gtk_box_pack_start (GTK_BOX (win->hbox1), win->search_button, FALSE, FALSE, 5);
     gtk_box_pack_start (GTK_BOX (win->hbox1), win->category_label, FALSE, FALSE, 5);
     gtk_box_pack_start (GTK_BOX (win->hbox1), win->category_box, FALSE, FALSE, 5);
-    gtk_box_pack_start (GTK_BOX (win->hbox1), win->reset_button, FALSE, FALSE, 5);
 
     win->hbox2 = gtk_hbox_new (FALSE, 5);
     gtk_box_pack_start (GTK_BOX (win->hbox2), win->size_min_label, FALSE, FALSE, 5);
@@ -120,7 +128,7 @@ void create_window(void)
     win->vbox = gtk_vbox_new (FALSE, 5);
     gtk_box_pack_start (GTK_BOX (win->vbox), win->hbox1, FALSE, FALSE, 5);
     gtk_box_pack_start (GTK_BOX (win->vbox), win->hbox2, FALSE, FALSE, 5);
-    gtk_box_pack_start (GTK_BOX (win->vbox), win->scrolled, FALSE, FALSE, 5);
+    gtk_box_pack_start (GTK_BOX (win->vbox), win->scrolled, TRUE, TRUE, 5);
 
     gtk_container_add (GTK_CONTAINER (win->window), win->vbox);
     gtk_widget_show_all (win->window);
@@ -133,27 +141,101 @@ static void destroy (GtkWidget *window, gpointer data)
     gtk_main_quit ();
 }
 
-//static void search_update (CSearch *sch)
-//{
-//    GtkTreeIter iter;
-//    guint i;
-//
-//    GPtrArray *p_arr = sch->result;
-//    GtkListStore *store = sch->store;
-//
-//    Anime *ani;
-//
-//    for (i = 0; i < p_arr->len; i++) {
-//        ani = (Anime *)g_ptr_array_index (p_arr, i);
-//        gtk_list_store_append (store, &iter);
-//        gtk_list_store_set (store, &iter,
-//                            SIZE, ani->size,
-//                            RELEASE_GROUP, ani->release_group,
-//                            EPISODE, ani->episode,
-//                            QUALITY, ani->quality,
-//                            CODEC, ani->codec, -1);
-//    }
-//}
+static void reset_wrapper (GtkWidget *button, CWindow *win)
+{
+    search_reset (win->csh);
+
+    gtk_entry_set_text (GTK_ENTRY (win->search_entry), "");
+    gtk_spin_button_set_value (GTK_SPIN_BUTTON (win->spin_max), 0);
+    gtk_spin_button_set_value (GTK_SPIN_BUTTON (win->spin_min), 0);
+}
+
+static void search_wrapper (GtkWidget *button, CWindow *win)
+{
+    const gchar *query = gtk_entry_get_text (GTK_ENTRY (win->search_entry));
+    guint length = gtk_entry_get_text_length (GTK_ENTRY (win->search_entry));
+
+    if (length == 0)
+        return;
+
+    gchar *cat = gtk_combo_box_get_active_text (GTK_COMBO_BOX (win->category_box));
+    guint category = ALL;
+    if (cat != NULL) {
+        guint i;
+        for (i = ALL; i < CATEGORIES; i++)
+            if (g_strcmp0 (category_names[i], cat)) {
+                category = i;
+                break;
+            }
+    }
+
+    guint max_size = gtk_spin_button_get_value_as_int (GTK_SPIN_BUTTON (win->spin_max));
+    guint min_size = gtk_spin_button_get_value_as_int (GTK_SPIN_BUTTON (win->spin_min));
+
+    if (min_size > max_size) {
+        min_size = max_size = 0;
+
+        gtk_spin_button_set_value (GTK_SPIN_BUTTON (win->spin_max), 0);
+        gtk_spin_button_set_value (GTK_SPIN_BUTTON (win->spin_min), 0);
+    }
+
+    search_reset (win->csh);
+
+    SoupMessage *msg;
+
+    msg = request (query, category, min_size, max_size);
+    win->csh->result = result_parser (msg->response_body->data, msg->response_body->length);
+
+    search_update (win->csh);
+}
+
+static void search_update (CSearch *csh)
+{
+    GtkTreeIter iter;
+    guint i;
+
+    GPtrArray *p_arr = csh->result;
+    GtkTreeModel *store = gtk_tree_view_get_model (GTK_TREE_VIEW (csh->search_view));
+
+    Anime *ani;
+
+    for (i = 0; i < p_arr->len; i++) {
+        ani = (Anime *)g_ptr_array_index (p_arr, i);
+        name_parser (ani);
+
+        if (ani->release_group == NULL || ani->episode == 0 || ani->quality == NULL || ani->codec == NULL)
+            continue;
+
+        gtk_list_store_append (GTK_LIST_STORE (store), &iter);
+        gtk_list_store_set (GTK_LIST_STORE (store), &iter,
+                            SIZE, ani->size,
+                            RELEASE_GROUP, ani->release_group,
+                            EPISODE, g_strdup_printf ("%d", ani->episode),
+                            QUALITY, ani->quality,
+                            CODEC, ani->codec,
+                            FILENAME, ani->name, -1);
+    }
+}
+
+static void search_reset (CSearch *csh)
+{
+    guint i;
+
+    GPtrArray *p_arr = csh->result;
+    GtkListStore *store = csh->store;
+
+    Anime *ani;
+
+    if (!p_arr)
+        return;
+
+    gtk_list_store_clear (store);
+
+    for (i = 0; i < p_arr->len; i++) {
+        ani = (Anime *)g_ptr_array_index (p_arr, i);
+        g_free (ani);
+    }
+}
 
 static void search_init (CSearch *csh)
 {
