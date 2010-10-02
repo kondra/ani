@@ -1,6 +1,6 @@
 #include "ani-net.h"
 
-SoupMessage *request (gchar *terms, gint type, gint min_size, gint max_size)
+SoupMessage *request (const gchar *terms, guint type, gint min_size, gint max_size)
 {
     SoupSession *session;
     SoupMessage *msg;
