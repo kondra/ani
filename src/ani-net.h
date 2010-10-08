@@ -18,6 +18,6 @@ enum
     CATEGORIES
 };
 
-SoupMessage *request (const gchar *terms, guint type, gint min_size, gint max_size);
+SoupMessage *request (const gchar *terms, guint type, gint min_size, gint max_size, GCallback callback, gpointer data);
 
 #endif
