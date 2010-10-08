@@ -2,8 +2,7 @@
 
 #include <glib/gprintf.h>
 
-#include "ani-parser.h"
-#include "ani-net.h"
+#include "ani-search.h"
 
 typedef struct
 {
@@ -72,6 +71,7 @@ void create_window(void)
     csh = win->csh = (CSearch*) g_malloc0 (sizeof (CSearch));
 
     win->window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+    gtk_window_set_position (GTK_WINDOW (win->window), GTK_WIN_POS_CENTER);
     gtk_window_set_title (GTK_WINDOW (win->window), "Ani");
     gtk_container_set_border_width (GTK_CONTAINER (win->window), 10);
     gtk_widget_set_size_request (win->window, 600, 400);
@@ -183,10 +183,7 @@ static void search_wrapper (GtkWidget *button, CWindow *win)
 
     search_reset (win->csh);
 
-    SoupMessage *msg;
-
-    msg = request (query, category, min_size, max_size);
-    win->csh->result = result_parser (msg->response_body->data, msg->response_body->length);
+    win->csh->result = anime_search (query, category, min_size, max_size);
 
     search_update (win->csh);
 }
