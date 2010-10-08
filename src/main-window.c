@@ -234,6 +234,7 @@ static void search_reset (CSearch *csh)
         ani = (Anime *)g_ptr_array_index (p_arr, i);
         g_free (ani);
     }
+    p_arr->len = 0;
 }
 
 static void search_init (CSearch *csh)
