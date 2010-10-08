@@ -2,7 +2,7 @@
 
 const gchar *category_names[] = {"All", "Anime", "Music", "Manga", "Hentai", "Other", "", "Raws", "Drama", "Music Video"};
 
-SoupMessage *request (const gchar *terms, guint type, gint min_size, gint max_size)
+SoupMessage *request (const gchar *terms, guint type, gint min_size, gint max_size, GCallback callback, gpointer data)
 {
     SoupSession *session;
     SoupMessage *msg;
@@ -24,6 +24,9 @@ SoupMessage *request (const gchar *terms, guint type, gint min_size, gint max_si
                 "type", g_strdup_printf ("%d", type),
                 NULL);
     }
+
+    if (callback)
+        g_signal_connect (G_OBJECT (msg), "got-chunk", callback, data);
 
     status = soup_session_send_message (session, msg);
 
