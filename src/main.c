@@ -1,5 +1,4 @@
 #include <gtk/gtk.h>
-#include <glib/gprintf.h>
 #include <glib.h>
 
 #include "main-window.h"
